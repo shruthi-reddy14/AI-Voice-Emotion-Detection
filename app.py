@@ -7,6 +7,8 @@ import numpy as np
 import joblib
 from tensorflow.keras.models import load_model
 from pydub import AudioSegment
+AudioSegment.converter = r"C:\Users\d3232\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg.Essentials_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-essentials_build\bin\ffmpeg.exe"
+AudioSegment.ffprobe = r"C:\Users\d3232\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg.Essentials_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-essentials_build\bin\ffprobe.exe"
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
 
@@ -82,6 +84,9 @@ def process_audio_and_predict(audio_file):
 
     audio_file.save(original_path)
 
+    print("Original file:", original_path)
+    print("Extension:", extension)
+
     # Convert webm to wav if mic recording
     if extension == "webm":
         wav_path = os.path.join(
@@ -101,6 +106,8 @@ def process_audio_and_predict(audio_file):
     else:
         filepath = original_path
 
+    print("Processing:", filepath)
+
     signal, sr = librosa.load(filepath, duration=3, offset=0.5)
 
     mfcc = librosa.feature.mfcc(
@@ -119,10 +126,12 @@ def process_audio_and_predict(audio_file):
         mfcc = mfcc[:, :173]
 
     mfcc = mfcc.reshape(1, 40, 173, 1)
+    print("MFCC shape:", mfcc.shape)
 
     prediction = model.predict(mfcc)
     predicted_class = np.argmax(prediction)
     emotion = encoder.inverse_transform([predicted_class])[0]
+    print("Predicted emotion:", emotion)
 
     score = get_interview_score(emotion)
     confidence = get_confidence(emotion)
