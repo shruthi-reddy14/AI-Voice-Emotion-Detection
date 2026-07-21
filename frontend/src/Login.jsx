@@ -20,6 +20,8 @@ function Login() {
 
             if (response.data.success) {
 
+                localStorage.setItem("username", response.data.username);
+
                 alert("Login Successful");
 
             } else {

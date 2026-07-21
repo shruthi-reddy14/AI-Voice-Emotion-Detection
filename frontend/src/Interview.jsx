@@ -4,8 +4,8 @@ import "./Home.css";
 
 function Interview({ onBack }) {
   const questions = [
-    "Tell me about yourself and your background.",
-    "Why should we hire you?"
+    "Introduce yourself.",
+    "what is your favourite technology"
   ];
 
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -88,6 +88,7 @@ function Interview({ onBack }) {
     const formData = new FormData();
     formData.append("audio", audio);
     formData.append("question_number", currentQuestion + 1);
+    formData.append("username",localStorage.getItem("username"));
 
     try {
       setLoading(true);
@@ -177,20 +178,20 @@ function Interview({ onBack }) {
   return (
     <div className="page-bg">
       <div className="analysis-page interview-page-shell">
-        <div className="top-bar interview-topbar">
+        <div className="analysis-topbar">
           <button className="back-home-pill" onClick={onBack}>
             ← Back to Home
           </button>
-          <h1>Interview Analysis</h1>
         </div>
 
         {!interviewCompleted ? (
-          <div className="interview-live-card">
-            <div className="interview-progress-head">
-              <p className="question-count">
-                Question {currentQuestion + 1} of {questions.length}
-              </p>
+          <div className="wellbeing-page-card">
+            <h1 className="wellbeing-title">Interview Analysis</h1>
+            <p className="wellbeing-subtitle">
+              Question {currentQuestion + 1} of {questions.length}
+            </p>
 
+            <div className="interview-progress-head">
               <div className="progress-bar interview-progress-bar">
                 <div
                   className="progress-fill"
@@ -209,56 +210,42 @@ function Interview({ onBack }) {
               </div>
             </div>
 
-            <div className="interview-live-body">
-              <div className="interview-left-status">
-                <div className="interview-timer">{formatTime(seconds)}</div>
+            <div className="mic-section">
+              <div className={`mic-ring-wrap ${isRecording ? "recording" : ""}`}>
+                <div className="mic-ring ring1"></div>
+                <div className="mic-ring ring2"></div>
+                <div className="mic-ring ring3"></div>
 
-                <div className="record-status-dot-line">
-                  <span className="record-dot"></span>
-                  <span>
-                    {isRecording
-                      ? "Recording..."
-                      : audio
-                      ? "Recording completed"
-                      : "Ready to record"}
-                  </span>
-                </div>
-
-                <div className="fake-wave">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                  <span></span>
+                <div className="mic-main-circle">
+                  <span className="mic-icon-big">🎤</span>
                 </div>
               </div>
 
-              <div className="interview-mic-center">
-                <div className={`interview-mic-outer ${isRecording ? "recording-pulse" : ""}`}>
-                  <div className="interview-mic-middle">
-                    <div className="interview-mic-inner">🎤</div>
-                  </div>
-                </div>
+              <div className="record-timer">{formatTime(seconds)}</div>
+              <div className="record-status-text">
+                {isRecording
+                  ? "Recording..."
+                  : audio
+                  ? "Recording completed"
+                  : "Ready to record"}
               </div>
             </div>
 
-            <div className="interview-bottom-actions">
+            <div className="fake-waveform"></div>
+
+            <div className="wellbeing-actions">
               {!isRecording ? (
-                <button className="purple-btn interview-main-btn" onClick={startRecording}>
+                <button className="well-btn primary-btn" onClick={startRecording}>
                   Start Recording
                 </button>
               ) : (
-                <button className="danger-btn interview-main-btn" onClick={stopRecording}>
+                <button className="well-btn stop-btn" onClick={stopRecording}>
                   Stop Recording
                 </button>
               )}
 
               <button
-                className="next-btn interview-main-btn"
+                className="analyze-main-btn"
                 onClick={handleAnalyzeAndNext}
                 disabled={!audio || loading}
               >
@@ -275,39 +262,46 @@ function Interview({ onBack }) {
             </p>
           </div>
         ) : (
-          <div className="interview-final-card">
-           
+          <div className="wellbeing-page-card">
+            <h1 className="wellbeing-title">Interview Complete</h1>
+            <p className="wellbeing-subtitle">
+              Here's your overall performance analysis
+            </p>
 
-            <div className="interview-overall-panel">
-              <p className="small-label">Overall Emotion</p>
-              <h1 className="interview-overall-emotion">{overallEmotion}</h1>
-              <div className="interview-overall-emoji">{overallEmoji}</div>
+            <div className="analysis-result-wrapper">
+              <div className="detected-emotion-card">
+                <p className="detected-label">Overall Emotion</p>
+                <h1 className="detected-emotion-text">{overallEmotion}</h1>
+                <div className="detected-emoji">
+                  {overallEmoji}
+                </div>
 
-              <div className="confidence-pill">
-                <span>Average Confidence</span>
-                <span>{averageConfidence}%</span>
-              </div>
-            </div>
-
-            <div className="interview-score-row">
-              <div className="score-box">
-                <span>Interview Score</span>
-                <strong>{averageScore}/100</strong>
-              </div>
-
-              <div className="score-box">
-                <span>Communication Score</span>
-                <strong>{averageCommunication}/100</strong>
+                <div className="confidence-pill">
+                  <span>Average Confidence</span>
+                  <span className="confidence-pill-value">
+                    {averageConfidence}%
+                  </span>
+                </div>
               </div>
 
-              <div className="score-box">
-                <span>Overall Status</span>
-                <strong>{readyStatus}</strong>
-              </div>
-            </div>
+              <div className="result-mini-grid">
+                <div className="result-mini-box">
+                  <span>Interview Score</span>
+                  <strong>{averageScore}/100</strong>
+                </div>
 
-            <div className="interview-bottom-grid">
-              <div className="suggestion-card">
+                <div className="result-mini-box">
+                  <span>Communication Score</span>
+                  <strong>{averageCommunication}/100</strong>
+                </div>
+
+                <div className="result-mini-box">
+                  <span>Overall Status</span>
+                  <strong>{readyStatus}</strong>
+                </div>
+              </div>
+
+              <div className="result-suggestion-card">
                 <h3>Question-wise Emotion Summary</h3>
                 {results.map((item, index) => (
                   <p key={index}>
@@ -316,7 +310,7 @@ function Interview({ onBack }) {
                 ))}
               </div>
 
-              <div className="suggestion-card">
+              <div className="result-suggestion-card">
                 <h3>Feedback</h3>
                 <p>
                   {readyStatus === "Ready"
@@ -324,20 +318,22 @@ function Interview({ onBack }) {
                     : "You need more practice. Work on confidence, clarity and consistency in your interview responses."}
                 </p>
               </div>
-            </div>
 
-            <button
-              className="full-report-btn"
-              onClick={() => {
-                setInterviewCompleted(false);
-                setCurrentQuestion(0);
-                setResults([]);
-                setAudio(null);
-                setSeconds(0);
-              }}
-            >
-              Analyze Another Interview
-            </button>
+              <div className="analyze-btn-wrap">
+                <button
+                  className="analyze-main-btn"
+                  onClick={() => {
+                    setInterviewCompleted(false);
+                    setCurrentQuestion(0);
+                    setResults([]);
+                    setAudio(null);
+                    setSeconds(0);
+                  }}
+                >
+                  Analyze Another Interview
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

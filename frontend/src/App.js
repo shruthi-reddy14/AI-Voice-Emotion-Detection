@@ -8,6 +8,7 @@ import Dashboard from "./Dashboard";
 function App() {
   const [page, setPage] = useState("auth");
   const [username, setUsername] = useState("");
+  const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
 
   const handleLoginSuccess = (loggedInUsername) => {
     setUsername(loggedInUsername);
@@ -17,6 +18,11 @@ function App() {
   const handleLogout = () => {
     setUsername("");
     setPage("auth");
+  };
+
+  const handleOpenDashboard = () => {
+    setDashboardRefreshKey(prev => prev + 1);
+    setPage("dashboard");
   };
 
   return (
@@ -30,7 +36,7 @@ function App() {
           username={username}
           onSelectMode={(mode) => setPage(mode)}
           onLogout={handleLogout}
-          onOpenDashboard={() => setPage("dashboard")}
+          onOpenDashboard={handleOpenDashboard}
         />
       )}
 
@@ -50,6 +56,7 @@ function App() {
 
       {page === "dashboard" && (
         <Dashboard
+          key={dashboardRefreshKey}
           username={username}
           onBack={() => setPage("home")}
           onLogout={handleLogout}

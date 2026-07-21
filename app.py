@@ -9,6 +9,7 @@ from tensorflow.keras.models import load_model
 from pydub import AudioSegment
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
+from datetime import datetime
 
 from interview_analysis import (
     get_interview_score,
@@ -271,14 +272,17 @@ def api_general():
 
         username = request.form.get("username")
         if MONGO_CONNECTED and username and general_collection is not None:
-            general_collection.insert_one({
+            saved = general_collection.insert_one({
                 "username": username,
                 "emotion": result["emotion"],
                 "confidence": result["confidence"],
                 "score": result["score"],
                 "communication_score": result["communication_score"],
-                "status": result["status"]
+                "status": result["status"],
+                "created_at": datetime.utcnow()
             })
+
+            print("Saved General :",saved.inserted_id)
 
         return jsonify(result)
 
@@ -290,7 +294,7 @@ def api_general():
 
 # =========================
 # Interview Analysis API
-# =========================
+
 @app.route("/api/interview", methods=["POST"])
 def api_interview():
     try:
@@ -305,16 +309,33 @@ def api_interview():
         username = request.form.get("username")
         question_number = request.form.get("question_number")
 
+        print("========== INTERVIEW DEBUG ==========")
+        print("Username:", username)
+        print("Question Number:", question_number)
+        print("Mongo Connected:", MONGO_CONNECTED)
+        print("Interview Collection:", interview_collection)
+
         if MONGO_CONNECTED and username and interview_collection is not None:
-            interview_collection.insert_one({
+
+            saved = interview_collection.insert_one({
                 "username": username,
                 "question_number": question_number,
                 "emotion": result["emotion"],
                 "confidence": result["confidence"],
                 "score": result["score"],
                 "communication_score": result["communication_score"],
-                "status": result["status"]
+                "status": result["status"],
+                "created_at": datetime.utcnow()
             })
+
+            print("Saved Successfully:", saved.inserted_id)
+
+        else:
+            print("Insert skipped!")
+            print("Reason:")
+            print("Username =", username)
+            print("Mongo Connected =", MONGO_CONNECTED)
+            print("Interview Collection =", interview_collection)
 
         return jsonify(result)
 
@@ -323,6 +344,8 @@ def api_interview():
         return jsonify({
             "error": str(e)
         }), 500
+    
+
 
 # =========================
 # General History API
@@ -339,7 +362,7 @@ def api_general_history():
             general_collection.find(
                 {"username": username},
                 {"_id": 0}
-            )
+            ).sort("created_at",-1)
         )
         return jsonify(data)
 
@@ -363,7 +386,7 @@ def api_interview_history():
             interview_collection.find(
                 {"username": username},
                 {"_id": 0}
-            )
+            ).sort("created_at",-1)
         )
         return jsonify(data)
 

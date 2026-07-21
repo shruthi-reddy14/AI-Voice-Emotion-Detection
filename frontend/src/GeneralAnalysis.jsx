@@ -93,6 +93,7 @@ function GeneralAnalysis({ onBack }) {
 
       const formData = new FormData();
       formData.append("audio", selectedAudio);
+      formData.append("username",localStorage.getItem("username"));
 
       const response = await axios.post(
         "http://127.0.0.1:5000/api/general",

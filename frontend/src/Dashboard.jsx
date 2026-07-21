@@ -34,136 +34,64 @@ function getEmoji(emotion) {
   return EMOTION_EMOJI[emotion] || "🎙️";
 }
 
-/* ── Donut chart ─────────────────────────────────── */
-function DonutChart({ entries, total }) {
-  const R = 80, CX = 110, CY = 110;
-  const circ = 2 * Math.PI * R;
-  let offset = 0;
+/* ── Pie chart ──────────────────────────────────── */
+function PieChart({ entries, total }) {
+  const size = 220;
+  const center = size / 2;
+  const radius = 80;
+  const innerRadius = 0;
 
-  const segments = entries.map((e) => {
-    const pct = e.count / total;
-    const dash = pct * circ;
-    const seg = { ...e, dash, gap: circ - dash, offset };
-    offset += dash;
-    return seg;
+  let cumulativePercent = 0;
+
+  const slices = entries.map((e) => {
+    const percent = e.count / total;
+    const startPercent = cumulativePercent;
+    cumulativePercent += percent;
+    const endPercent = cumulativePercent;
+
+    const startAngle = startPercent * 2 * Math.PI - Math.PI / 2;
+    const endAngle = endPercent * 2 * Math.PI - Math.PI / 2;
+
+    const x1 = center + radius * Math.cos(startAngle);
+    const y1 = center + radius * Math.sin(startAngle);
+    const x2 = center + radius * Math.cos(endAngle);
+    const y2 = center + radius * Math.sin(endAngle);
+
+    const largeArcFlag = percent > 0.5 ? 1 : 0;
+
+    const pathData = percent >= 1
+      ? `M ${center},${center} m -${radius},0 a ${radius},${radius} 0 1,0 ${radius * 2},0 a ${radius},${radius} 0 1,0 -${radius * 2},0`
+      : `M ${center},${center} L ${x1},${y1} A ${radius},${radius} 0 ${largeArcFlag},1 ${x2},${y2} Z`;
+
+    return {
+      ...e,
+      pathData,
+      percent: Math.round(percent * 100),
+    };
   });
 
   return (
-    <svg viewBox="0 0 220 2s20" className="donut-svg">
-      <circle cx={CX} cy={CY} r={R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="22"/>
-      {segments.map((s, i) => (
-        <circle key={i} cx={CX} cy={CY} r={R} fill="none"
-          stroke={getColor(s.emotion)} strokeWidth="22"
-          strokeDasharray={`${s.dash} ${s.gap}`}
-          strokeDashoffset={-s.offset}
-          strokeLinecap="butt"
-          transform={`rotate(-90 ${CX} ${CY})`}
-          style={{ filter: `drop-shadow(0 0 6px ${getColor(s.emotion)}88)` }}
+    <svg viewBox={`0 0 ${size} ${size}`} className="pie-svg">
+      {slices.map((s, i) => (
+        <path
+          key={i}
+          d={s.pathData}
+          fill={getColor(s.emotion)}
+          stroke="#fff"
+          strokeWidth="2"
+          style={{ filter: `drop-shadow(0 2px 4px ${getColor(s.emotion)}66)` }}
         />
       ))}
-      <circle cx={CX} cy={CY} r={R - 14} fill="rgba(8,12,30,0.96)"/>
-      <text x={CX} y={CY - 6} textAnchor="middle" fill="#F5F3FF"
-        fontSize="26" fontWeight="800" fontFamily="Space Grotesk, sans-serif">
+      <circle cx={center} cy={center} r={radius * 0.45} fill="#fff" />
+      <text x={center} y={center - 8} textAnchor="middle" fill="#1F2937"
+        fontSize="28" fontWeight="800" fontFamily="Space Grotesk, sans-serif">
         {total}
       </text>
-      <text x={CX} y={CY + 16} textAnchor="middle" fill="#9CA3AF"
-        fontSize="13" fontFamily="Inter, sans-serif">
+      <text x={center} y={center + 14} textAnchor="middle" fill="#6B7280"
+        fontSize="12" fontFamily="Inter, sans-serif">
         Total
       </text>
     </svg>
-  );
-}
-
-/* ── Trend line chart ────────────────────────────── */
-function TrendChart({ data, labels }) {
-  const W = 700, H = 240, PAD = { t: 20, b: 40, l: 10, r: 10 };
-  const plotW = W - PAD.l - PAD.r;
-  const plotH = H - PAD.t - PAD.b;
-  const max = 100;
-
-  const pts = data.map((v, i) => {
-    const x = PAD.l + (i / Math.max(data.length - 1, 1)) * plotW;
-    const y = PAD.t + plotH - (v / max) * plotH;
-    return [x, y];
-  });
-
-  const polyline = pts.map((p) => p.join(",")).join(" ");
-
-  // smooth area
-  const areaPath = pts.length < 2 ? "" :
-    `M ${pts[0][0]},${PAD.t + plotH} ` +
-    pts.map((p) => `L ${p[0]},${p[1]}`).join(" ") +
-    ` L ${pts[pts.length - 1][0]},${PAD.t + plotH} Z`;
-
-  const gridYs = [0, 25, 50, 75, 100].map(
-    (v) => ({ v, y: PAD.t + plotH - (v / max) * plotH })
-  );
-
-  return (
-    <div className="trend-chart-wrap">
-      <svg viewBox={`0 0 ${W} ${H}`} className="trend-svg" preserveAspectRatio="xMidYMid meet">
-        <defs>
-          <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#7C3AED"/>
-            <stop offset="100%" stopColor="#D946EF"/>
-          </linearGradient>
-          <linearGradient id="areaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.25"/>
-            <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0"/>
-          </linearGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="3" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-
-        {/* Y-axis labels + grid */}
-        {gridYs.map(({ v, y }) => (
-          <g key={v}>
-            <line x1={PAD.l} y1={y} x2={W - PAD.r} y2={y}
-              stroke="rgba(255,255,255,0.07)" strokeWidth="1"/>
-            <text x={0} y={y + 4} fill="#6B7280" fontSize="11" fontFamily="Inter">
-              {v}%
-            </text>
-          </g>
-        ))}
-
-        {/* Area fill */}
-        {pts.length >= 2 && (
-          <path d={areaPath} fill="url(#areaGrad)"/>
-        )}
-
-        {/* Line */}
-        {pts.length >= 2 && (
-          <polyline points={polyline} fill="none"
-            stroke="url(#lineGrad)" strokeWidth="3.5"
-            strokeLinejoin="round" strokeLinecap="round"
-            filter="url(#glow)"
-          />
-        )}
-
-        {/* Points */}
-        {pts.map(([x, y], i) => (
-          <g key={i}>
-            <circle cx={x} cy={y} r="6" fill="#1C1040"
-              stroke="url(#lineGrad)" strokeWidth="2.5"
-              filter="url(#glow)"
-            />
-          </g>
-        ))}
-
-        {/* X-axis labels */}
-        {labels.map((lbl, i) => {
-          const x = PAD.l + (i / Math.max(data.length - 1, 1)) * plotW;
-          return (
-            <text key={i} x={x} y={H - 6} textAnchor="middle"
-              fill="#6B7280" fontSize="11" fontFamily="Inter">
-              {lbl}
-            </text>
-          );
-        })}
-      </svg>
-    </div>
   );
 }
 
@@ -198,6 +126,7 @@ function Dashboard({ username, onBack, onLogout }) {
       confidence: Number(r.confidence || 0),
       score: Number(r.score || 0),
       status: r.status || "",
+      date: r.date || r.created_at || r.timestamp || "",
     }));
     const iv = interviewData.map((r) => ({
       type: "Interview",
@@ -205,14 +134,28 @@ function Dashboard({ username, onBack, onLogout }) {
       confidence: Number(r.avg_confidence || r.confidence || 0),
       score: Number(r.avg_score || r.score || 0),
       status: r.status || "",
+      date: r.date || r.created_at || r.timestamp || "",
     }));
-    return [...g, ...iv];
+    const records = [...g, ...iv];
+
+records.sort((a, b) => {
+  return new Date(b.date) - new Date(a.date);
+});
+
+return records;
   }, [generalData, interviewData]);
 
   // Stats
   const total = allRecords.length;
-  const thisMonth = allRecords.length; // all stored; refine with timestamp if added
-  const avgConf = total === 0 ? 0 : Math.round(allRecords.reduce((a, b) => a + b.confidence, 0) / total);
+  const interviewCount = interviewData.length;
+  const generalCount = generalData.length;
+
+  const today = new Date().toISOString().split("T")[0];
+  const todayCount = allRecords.filter((r) => {
+    if (!r.date) return false;
+    const recordDate = new Date(r.date).toISOString().split("T")[0];
+    return recordDate === today;
+  }).length;
 
   // Emotion distribution
   const emotionMap = {};
@@ -223,36 +166,22 @@ function Dashboard({ username, onBack, onLogout }) {
     .map(([emotion, count]) => ({ emotion, count, percent: Math.round((count / Math.max(total, 1)) * 100) }))
     .sort((a, b) => b.count - a.count);
 
-  // Recent (last 5)
-  const recent = [...allRecords].reverse().slice(0, 5);
+  // Last analysis
+  const lastAnalysis = allRecords.length > 0 ? allRecords[0] : null;
 
-  // Trend (last 7 confidence values)
-  const trendRaw = allRecords.length >= 2
-    ? allRecords.slice(-7).map((r) => r.confidence)
-    : [28, 30, 75, 38, 60, 62, 95];
+  // Recent history (last 10)
+  const recentHistory = allRecords.slice(0, 10);
 
-  const trendLabels = trendRaw.map((_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (trendRaw.length - 1 - i) * 4);
-    return `${d.toLocaleString("default", { month: "short" })} ${d.getDate()}`;
-  });
-
-  // Insights
-  const insights = [];
-  if (total === 0) {
-    insights.push({ icon: "🎙️", text: "No analyses yet — start with Emotional Wellbeing or Interview mode." });
-  } else {
-    const topEmotion = emotionEntries[0]?.emotion || "";
-    const trend = trendRaw.length >= 2 ? trendRaw[trendRaw.length - 1] - trendRaw[0] : 0;
-    if (trend > 10) insights.push({ icon: "📈", text: "Your confidence score is trending upward. Keep going!" });
-    else if (trend < -10) insights.push({ icon: "📉", text: "Your scores dipped recently. Try a short practice session." });
-    else insights.push({ icon: "📊", text: "Your emotional state is stabilizing. Consistent results detected." });
-    if (["Calm", "Happy", "Confident"].includes(topEmotion))
-      insights.push({ icon: "😊", text: `Your most frequent emotion is ${topEmotion} — a positive sign for performance.` });
-    else if (["Anxious", "Fear", "Nervous"].includes(topEmotion))
-      insights.push({ icon: "💡", text: `High ${topEmotion} detected. Breathing exercises before sessions may help.` });
-    insights.push({ icon: "🎯", text: "Great job staying consistent! Aim for a daily check-in to track progress." });
-  }
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "N/A";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "N/A";
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
 
   return (
     <div className="db-page">
@@ -285,7 +214,6 @@ function Dashboard({ username, onBack, onLogout }) {
               <h1 className="db-title">Dashboard</h1>
               <p className="db-welcome">Welcome back, <span className="db-username">{username || "User"}</span> 👋</p>
             </div>
-            <div className="db-bell">🔔</div>
           </div>
 
           {loading ? (
@@ -298,10 +226,10 @@ function Dashboard({ username, onBack, onLogout }) {
               {/* ── Stat cards ── */}
               <div className="db-stats">
                 {[
-                  { icon: "🎙️", label: "Total Analyses",     value: total,          sub: "All time analyses" },
-                  { icon: "📈", label: "Average Confidence",  value: `${avgConf}%`,  sub: "Across all analyses" },
-                  { icon: "😊", label: "Detected Emotions",   value: emotionEntries.length, sub: "Unique categories" },
-                  { icon: "🗓️", label: "This Month",          value: thisMonth,       sub: "Analyses completed" },
+                  { icon: "🎙️", label: "Total Analyses", value: total, sub: "All time analyses" },
+                  { icon: "💼", label: "Interview Analyses", value: interviewCount, sub: "Interview sessions" },
+                  { icon: "🧘", label: "Wellbeing Analyses", value: generalCount, sub: "Emotional wellbeing" },
+                  { icon: "📅", label: "Today's Analyses", value: todayCount, sub: "Analyses today" },
                 ].map((s, i) => (
                   <div className="db-stat-card" key={i}>
                     <div className="db-stat-icon">{s.icon}</div>
@@ -314,26 +242,20 @@ function Dashboard({ username, onBack, onLogout }) {
                 ))}
               </div>
 
-              {/* ── Middle row: Trend + Distribution ── */}
+              {/* ── Middle row: Pie Chart + Last Analysis ── */}
               <div className="db-mid-row">
 
-                {/* Trend */}
-                <div className="db-card db-trend-card">
+                {/* Pie Chart */}
+                <div className="db-card db-pie-card">
                   <div className="db-card-head">
-                    <h3>📈 Emotion Trend</h3>
-                    <span className="db-pill">Last {trendRaw.length} sessions</span>
+                    <h3>📊 Emotion Distribution</h3>
+                    <span className="db-pill">All time</span>
                   </div>
-                  <TrendChart data={trendRaw} labels={trendLabels}/>
-                </div>
-
-                {/* Donut */}
-                <div className="db-card db-donut-card">
-                  <h3>Emotion Distribution</h3>
                   {total === 0 ? (
                     <p className="db-empty">No data yet</p>
                   ) : (
-                    <div className="db-donut-wrap">
-                      <DonutChart entries={emotionEntries} total={total}/>
+                    <div className="db-pie-wrap">
+                      <PieChart entries={emotionEntries} total={total}/>
                       <div className="db-legend">
                         {emotionEntries.map((e, i) => (
                           <div className="db-legend-row" key={i}>
@@ -350,52 +272,70 @@ function Dashboard({ username, onBack, onLogout }) {
                     </div>
                   )}
                 </div>
+
+                {/* Last Analysis */}
+                <div className="db-card db-last-analysis-card">
+                  <h3>🎯 Last Analysis</h3>
+                  {lastAnalysis ? (
+                    <div className="db-last-analysis-content">
+                      <div className="db-last-emoji">{getEmoji(lastAnalysis.emotion)}</div>
+                      <div className="db-last-emotion">{lastAnalysis.emotion}</div>
+                      <div className="db-last-confidence">
+                        <span className="db-confidence-label">Confidence:</span>
+                        <span className="db-confidence-value">{lastAnalysis.confidence}%</span>
+                      </div>
+                      <div className="db-last-date">{formatDate(lastAnalysis.date)}</div>
+                    </div>
+                  ) : (
+                    <p className="db-empty">No analyses yet. Start a session!</p>
+                  )}
+                </div>
               </div>
 
-              {/* ── Bottom row: Recent + Insights ── */}
+              {/* ── Bottom row: Recent Analysis History ── */}
               <div className="db-bottom-row">
-
-                {/* Recent Analyses */}
-                <div className="db-card">
-                  <h3>🕐 Recent Analyses</h3>
-                  {recent.length === 0 ? (
+                <div className="db-card db-history-card">
+                  <h3>📋 Recent Analysis History</h3>
+                  {recentHistory.length === 0 ? (
                     <p className="db-empty">No analyses yet. Start a session!</p>
                   ) : (
-                    <div className="db-recent-list">
-                      {recent.map((r, i) => (
-                        <div className="db-recent-row" key={i}>
-                          <div className="db-recent-left">
-                            <span className="db-recent-emoji">{getEmoji(r.emotion)}</span>
-                            <div>
-                              <div className="db-recent-emotion">{r.emotion}</div>
-                              <div className="db-recent-type">{r.type}</div>
-                            </div>
-                          </div>
-                          <div className="db-recent-right">
-                            <span className="db-conf-pill" style={{ background: `${getColor(r.emotion)}22`, color: getColor(r.emotion), border: `1px solid ${getColor(r.emotion)}55` }}>
-                              {r.confidence}%
-                            </span>
-                            <button className="db-view-btn">View Details ›</button>
-                          </div>
-                        </div>
-                      ))}
+                    <div className="db-table-wrap">
+                      <table className="db-history-table">
+                        <thead>
+                          <tr>
+                            <th>Type</th>
+                            <th>Emotion</th>
+                            <th>Confidence</th>
+                            <th>Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {recentHistory.map((r, i) => (
+                            <tr key={i}>
+                              <td>
+                                <span className={`db-type-badge ${r.type.toLowerCase()}`}>
+                                  {r.type}
+                                </span>
+                              </td>
+                              <td>
+                                <div className="db-table-emotion">
+                                  <span className="db-table-emoji">{getEmoji(r.emotion)}</span>
+                                  <span>{r.emotion}</span>
+                                </div>
+                              </td>
+                              <td>
+                                <span className="db-conf-pill" style={{ background: `${getColor(r.emotion)}22`, color: getColor(r.emotion), border: `1px solid ${getColor(r.emotion)}55` }}>
+                                  {r.confidence}%
+                                </span>
+                              </td>
+                              <td className="db-table-date">{formatDate(r.date)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   )}
                 </div>
-
-                {/* Insights */}
-                <div className="db-card db-insights-card">
-                  <h3>💡 Insights</h3>
-                  <div className="db-insights-list">
-                    {insights.map((ins, i) => (
-                      <div className="db-insight-item" key={i}>
-                        <span className="db-insight-icon">{ins.icon}</span>
-                        <p>{ins.text}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
               </div>
             </>
           )}
